@@ -1,5 +1,5 @@
 import { json } from "express";
-import type { User } from "../types";
+import type { UserType } from "../types";
 
 export const readUser = async() => {
     try{
@@ -10,11 +10,11 @@ export const readUser = async() => {
     }
 }
 
-export const writeUser = async(data:User) => {
+export const writeUser = async(data:UserType) => {
     try{
         const file = Bun.file('D:\\Tracers\\FullStack JWT Flow\\Backend\\src\\UsersDB.json')
         const fileContent = await file.text();
-        const users: User[] = JSON.parse(fileContent)
+        const users: UserType[] = JSON.parse(fileContent)
         users.push(data);
         await Bun.write('D:\\Tracers\\FullStack JWT Flow\\Backend\\src\\UsersDB.json',JSON.stringify(users,null,4))
         const recheckfile = Bun.file('D:\\Tracers\\FullStack JWT Flow\\Backend\\src\\UsersDB.json').text();

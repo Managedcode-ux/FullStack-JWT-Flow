@@ -1,5 +1,6 @@
 import express, { Router } from "express"
-// import { app as user_router} from "./user-routes";
+import mongoose from "mongoose";
+
 
 import { app as anonymousRoutes } from "./Routes/anonymous-route"
 import { router as authenticaionRoutes } from "./Routes/authRoutes";
@@ -9,7 +10,7 @@ import dotenv from 'dotenv'
 // console.log('CWD:', process.cwd()); // Ensure it matches the location of Backend
 
 // console.log(process.env);
-
+mongoose.connect('mongodb://localhost:27017/JWT_AUTH')
 const app = express();
 const port = 4000;
 app.use(express.json())

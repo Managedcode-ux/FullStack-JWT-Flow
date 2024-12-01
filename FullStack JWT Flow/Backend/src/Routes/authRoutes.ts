@@ -1,12 +1,12 @@
 import express,{Router} from "express";
 import bcrypt from 'bcrypt'
-import jwt from "jsonwebtoken"
+import jwt from 'jsonwebtoken'
 import _, { find } from "lodash";
 import { randomUUIDv7 } from "bun";
-import { readUser,writeUser } from "../Helper/DBhelpers";
-import userDb from '../UsersDB.json'
+// import userDb from '../UsersDB.json'
+import {User} from '../../DB/Users'
 
-import type {User} from ".././types";
+import type {customJWTtype, UserType} from ".././types";
 
 export const router = express.Router();
 
@@ -15,14 +15,13 @@ router.post('/register',async(req,res) => {
     try{
         const {username,password} = req.body;
         const hashedPassword = await bcrypt.hash(password,10);
-        const newUser:User = {
-            id:randomUUIDv7().toString(),
+        const newUserData:UserType = {
             username : username,
-            password:hashedPassword
+            password:hashedPassword,
+            refreshToken:null
         };
-
-        // User.push(newUser)
-        writeUser(newUser)
+        const newUser = new User(newUserData);
+        await newUser.save()
         res.status(201).json({message:'User registered successfully'});
     }catch(error){
         console.log("Something went wrong \n");
@@ -35,8 +34,8 @@ router.post('/register',async(req,res) => {
 router.post('/login',async(req:express.Request,res:express.Response)=>{
     try{
         const {username,password} = req.body;
-        const user = _.find(userDb,{username:username});
-        if(user === undefined){
+        const user:UserType|null = await User.findOne({username})
+        if(user === undefined || user===null){
             res.status(401).json({message:'Authentication failed'})
             return;
         }
@@ -46,15 +45,27 @@ router.post('/login',async(req:express.Request,res:express.Response)=>{
             return;
         }
 
-        const secretKey = process.env.JWT_SECRET_KEY as string
 
-        const token = jwt.sign(
-            {userId:user.id},
-            secretKey,
+        //generate access token and refresh token
+        const accessToken = jwt.sign(
+            {userId:user._id},
+            process.env.JWT_SECRET_KEY as string,
             {expiresIn:'1h'}
         )
 
-        res.status(200).send({token})
+        const refreshToken = jwt.sign(
+            {userId:user._id},
+            process.env.REFRESH_SECRET_KEY as string,
+            {expiresIn:'30d'}
+        )
+        // user.refreshToken = refreshToken; //setting refresh token to user
+        
+        await User.findByIdAndUpdate(user._id, { $set: { refreshToken: refreshToken } });
+
+        res
+        .cookie('refreshToken',refreshToken,{httpOnly:true,sameSite:'strict'})
+        .header('Authorization', accessToken)
+        .send({accessToken,refreshToken})
     }catch(error){
         console.log("Something went wrong \n");
         console.log(error)
@@ -62,3 +73,27 @@ router.post('/login',async(req:express.Request,res:express.Response)=>{
         return
     }
 })
+
+// router.post('/refresh',async(req,res) => {
+//     const refreshToken = req.cookies['refreshToken'];
+    
+//     if(!refreshToken){
+//         return res.status(401).json({error:'Access Denied. No refresh token provided'})
+//     }
+
+//     try{
+//         const decoded = jwt.verify(
+//             refreshToken,
+//             process.env.REFRESH_SECRET_KEY as string
+//         ) as customJWTtype
+
+//         const accessToken =  jwt.sign(
+//             {userId:decoded.userId},
+//             process.env.JWT_SECRET_KEY as string,
+//             { expiresIn: '1h' }
+//         )
+
+//         //Remove expired refresh token
+
+//     }catch(error){}
+// })
