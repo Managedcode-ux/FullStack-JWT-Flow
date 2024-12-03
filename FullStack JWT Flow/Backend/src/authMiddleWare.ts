@@ -4,17 +4,43 @@ import express from 'express'
 
 
 function verifyToken(req:any,res:any,next:express.NextFunction){
-    const token = req.header('Authorization');
-    if(!token){
+    let accessToken = req.header('Authorization');
+    const refreshToken = req.cookies['refreshToken']
+    if(!accessToken && !refreshToken){
         res.status(401).json({error:"Access Denied"});
         return
     }  
     try{
-        const decoded = jwt.verify(token,process.env.JWT_SECRET_KEY as string)
-        if(typeof decoded !== 'string'){
-            req.userId = decoded.userId;
-            next();
+        let decoded:any;
+        if(accessToken){
+            try{ //check if accessToken is valid
+                decoded = jwt.verify(accessToken,process.env.JWT_SECRET_KEY as string)
+            }catch(error:any){ // if token access invalid use and check refresh token
+                if(error.name==='TokenExpiredError'){
+                    try{ //checking if refresh token is valid or not
+                        decoded = jwt.verify(
+                            refreshToken,
+                            process.env.REFRESH_SECRET_KEY as string
+                        )
+                        const newAccessToken = jwt.sign(
+                            {userId:decoded.userId},
+                            process.env.JWT_SECRET_KEY as string
+                        )
+                        res.header('Authorization',newAccessToken)
+                        console.log(res.header)
+                    }
+                    catch(error:any){ // if refresh token is also invalid return error
+                        res.status(401).json({error:'Invalid refresh and access tokens'})
+                    }
+                }else{
+                    res.status(401).json({error:'Invalid refresh and access tokens'})
+                }
+            }
+        }else{
+            res.status(401).json({error:'Invalid refresh and access tokens'})
         }
+        req.userId = decoded.userId
+        next()
     }catch(error){
         res.status(401).json({error:'Invalid Tokens'})
         return
@@ -22,3 +48,11 @@ function verifyToken(req:any,res:any,next:express.NextFunction){
 }
 
 export default verifyToken
+
+/* FUTURE IMPROVEMENTS 
+    1. Stop getting the refresh cookie at the top of middleware, instead get it when cheking the validity of refreshToken so that if cookie is not present the program 
+    does not crash. Currently if the refreshCookie is not provided in the request program crashes
+
+    2. Create a wrapper function for jwt.verify that would return boolean values as because currently jwt.verify returns a Exception if token is invalid, to handle
+    this exception try catch is used which when nested creates a complex flow. A function like verifyToken can wrap jwt.verify and can easily be handeled using if else.
+*/

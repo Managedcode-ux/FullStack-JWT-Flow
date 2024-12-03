@@ -3,7 +3,6 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import _, { find } from "lodash";
 import { randomUUIDv7 } from "bun";
-// import userDb from '../UsersDB.json'
 import {User} from '../../DB/Users'
 
 import type {customJWTtype, UserType} from ".././types";
@@ -50,7 +49,7 @@ router.post('/login',async(req:express.Request,res:express.Response)=>{
         const accessToken = jwt.sign(
             {userId:user._id},
             process.env.JWT_SECRET_KEY as string,
-            {expiresIn:'1h'}
+            {expiresIn:'2s'}
         )
 
         const refreshToken = jwt.sign(
@@ -66,6 +65,7 @@ router.post('/login',async(req:express.Request,res:express.Response)=>{
         .cookie('refreshToken',refreshToken,{httpOnly:true,sameSite:'strict'})
         .header('Authorization', accessToken)
         .send({accessToken,refreshToken})
+        
     }catch(error){
         console.log("Something went wrong \n");
         console.log(error)
@@ -74,26 +74,38 @@ router.post('/login',async(req:express.Request,res:express.Response)=>{
     }
 })
 
-// router.post('/refresh',async(req,res) => {
-//     const refreshToken = req.cookies['refreshToken'];
+
+// Route specifically implemented for token rotation
+router.post('/refresh',async(req,res) => {
+    const refreshToken = req.cookies['refreshToken'];
     
-//     if(!refreshToken){
-//         return res.status(401).json({error:'Access Denied. No refresh token provided'})
-//     }
+    if(!refreshToken){
+        res.status(401).json({error:'Access Denied. No refresh token provided'})
+        return
+    }
 
-//     try{
-//         const decoded = jwt.verify(
-//             refreshToken,
-//             process.env.REFRESH_SECRET_KEY as string
-//         ) as customJWTtype
+    try{
+        const decoded = jwt.verify(
+            refreshToken,
+            process.env.REFRESH_SECRET_KEY as string
+        ) as customJWTtype
 
-//         const accessToken =  jwt.sign(
-//             {userId:decoded.userId},
-//             process.env.JWT_SECRET_KEY as string,
-//             { expiresIn: '1h' }
-//         )
+        const newAccessToken =  jwt.sign(
+            {userId:decoded.userId},
+            process.env.JWT_SECRET_KEY as string,
+            { expiresIn: '1h' }
+        )
 
-//         //Remove expired refresh token
+        //Remove expired refresh token
+        await User.findByIdAndUpdate(
+            decoded.userId, 
+            { $set: { refreshToken: null } }
+        )
 
-//     }catch(error){}
-// })
+        res.header('Authorization',newAccessToken).send(newAccessToken)
+
+    }catch(error){
+        res.status(400).json({ error: 'Invalid Token.' });
+        return
+    }
+})
