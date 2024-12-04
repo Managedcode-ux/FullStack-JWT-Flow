@@ -14,10 +14,12 @@ function verifyToken(req:any,res:any,next:express.NextFunction){
         let decoded:any;
         if(accessToken){
             try{ //check if accessToken is valid
+                console.log('Checking access token validity')
                 decoded = jwt.verify(accessToken,process.env.JWT_SECRET_KEY as string)
             }catch(error:any){ // if token access invalid use and check refresh token
                 if(error.name==='TokenExpiredError'){
                     try{ //checking if refresh token is valid or not
+                        console.log('Checking refresh token validity')
                         decoded = jwt.verify(
                             refreshToken,
                             process.env.REFRESH_SECRET_KEY as string
@@ -27,7 +29,6 @@ function verifyToken(req:any,res:any,next:express.NextFunction){
                             process.env.JWT_SECRET_KEY as string
                         )
                         res.header('Authorization',newAccessToken)
-                        console.log(res.header)
                     }
                     catch(error:any){ // if refresh token is also invalid return error
                         res.status(401).json({error:'Invalid refresh and access tokens'})
