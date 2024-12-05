@@ -4,6 +4,7 @@ import express from 'express'
 
 
 function verifyToken(req:any,res:any,next:express.NextFunction){
+
     let accessToken = req.header('Authorization');
     const refreshToken = req.cookies['refreshToken']
     if(!accessToken && !refreshToken){
@@ -11,7 +12,7 @@ function verifyToken(req:any,res:any,next:express.NextFunction){
         return
     }  
     try{
-        let decoded:any;
+         let decoded:any;
         if(accessToken){
             try{ //check if accessToken is valid
                 console.log('Checking access token validity')
@@ -26,9 +27,13 @@ function verifyToken(req:any,res:any,next:express.NextFunction){
                         )
                         const newAccessToken = jwt.sign(
                             {userId:decoded.userId},
-                            process.env.JWT_SECRET_KEY as string
+                            process.env.JWT_SECRET_KEY as string,
+                            {expiresIn:'1m'}
                         )
-                        res.header('Authorization',newAccessToken)
+                        // Set the new token in response header
+                        res.set('Authorization',newAccessToken)
+                         // Add this header to allow the client to read Authorization
+                        res.set('Access-Control-Expose-Headers','Authorization')
                     }
                     catch(error:any){ // if refresh token is also invalid return error
                         res.status(401).json({error:'Invalid refresh and access tokens'})
@@ -56,4 +61,6 @@ export default verifyToken
 
     2. Create a wrapper function for jwt.verify that would return boolean values as because currently jwt.verify returns a Exception if token is invalid, to handle
     this exception try catch is used which when nested creates a complex flow. A function like verifyToken can wrap jwt.verify and can easily be handeled using if else.
+
+    3. Create a logOut mechanism
 */

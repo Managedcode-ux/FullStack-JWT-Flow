@@ -18,6 +18,11 @@ export const authSlice = createSlice({
         },
         clearUser:(state)=>{
             state.user = null
+        },
+        updateToken:(state,action)=>{
+            if(state.user){
+                state.user.accessToken = action.payload
+            }
         }
     },
     extraReducers:(builder)=>{
@@ -34,5 +39,5 @@ export const authSlice = createSlice({
     }
 })
 
-export const {setUser,clearUser} = authSlice.actions
+export const {setUser,clearUser,updateToken} = authSlice.actions
 export default authSlice.reducer

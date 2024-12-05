@@ -62,9 +62,9 @@ router.post('/login',async(req:express.Request,res:express.Response)=>{
         await User.findByIdAndUpdate(user._id, { $set: { refreshToken: refreshToken } });
 
         res
-        .cookie('refreshToken',refreshToken,{httpOnly:true,sameSite:'strict'})
+        .cookie('refreshToken',refreshToken,{httpOnly:true,sameSite:'lax', secure:true, path:'/'})
         .header('Authorization', accessToken)
-        .send({accessToken,refreshToken})
+        .json({accessToken,refreshToken})
         
     }catch(error){
         console.log("Something went wrong \n");

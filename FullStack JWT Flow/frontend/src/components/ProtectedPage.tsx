@@ -1,7 +1,6 @@
 import React from 'react'
-import { RootState } from '../store'
 import {usePremQuoteQuery} from '../services/quotesApi'
-import { useSelector } from 'react-redux'
+
 
 // import {useSelector} from 'react-redux'
 // import {useLogOutMutation} from '../services/authApi'
