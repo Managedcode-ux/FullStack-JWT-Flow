@@ -36,14 +36,19 @@ function verifyToken(req:any,res:any,next:express.NextFunction){
                         res.set('Access-Control-Expose-Headers','Authorization')
                     }
                     catch(error:any){ // if refresh token is also invalid return error
+                        
                         res.status(401).json({error:'Invalid refresh and access tokens'})
+                        return
                     }
-                }else{
+                }else{ // return if error is something other than TokenExpiredError
                     res.status(401).json({error:'Invalid refresh and access tokens'})
+                    return
                 }
             }
         }else{
             res.status(401).json({error:'Invalid refresh and access tokens'})
+            return
+
         }
         req.userId = decoded.userId
         next()
