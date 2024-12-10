@@ -53,7 +53,10 @@ router.post('/login',async(req:express.Request,res:express.Response)=>{
         )
 
         const refreshToken = jwt.sign(
-            {userId:user._id},
+            {
+                userId:user._id,
+                 createdAt:Date.now() // this date will be use to invalidate the refresh token 
+            },
             process.env.REFRESH_SECRET_KEY as string,
             {expiresIn:'30d'}
         )

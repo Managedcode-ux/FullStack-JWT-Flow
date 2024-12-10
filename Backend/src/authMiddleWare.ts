@@ -25,6 +25,15 @@ function verifyToken(req:any,res:any,next:express.NextFunction){
                             refreshToken,
                             process.env.REFRESH_SECRET_KEY as string
                         )
+                        const refreshTokenAge = Date.now() - decoded.createdAt
+                        const sevenDays = 7*24*60*60*1000;
+                        
+                        if(refreshTokenAge>sevenDays){ // if refresh token age was greater than 7 days invalidate and force a login
+                            res.clearCookie('refreshToken')
+                            res.status(401).json({error:'Please login to continue!'})
+                            return
+                        }
+                        
                         const newAccessToken = jwt.sign(
                             {userId:decoded.userId},
                             process.env.JWT_SECRET_KEY as string,
@@ -60,14 +69,11 @@ function verifyToken(req:any,res:any,next:express.NextFunction){
 
 export default verifyToken
 
-/* FUTURE IMPROVEMENTS 
-    1. Stop getting the refresh cookie at the top of middleware, instead get it when cheking the validity of refreshToken so that if cookie is not present the program 
-    does not crash. Currently if the refreshCookie is not provided in the request program crashes
+/* FUTURE IMPROVEMENTS
 
     2. Create a wrapper function for jwt.verify that would return boolean values as because currently jwt.verify returns a Exception if token is invalid, to handle
     this exception try catch is used which when nested creates a complex flow. A function like verifyToken can wrap jwt.verify and can easily be handeled using if else.
 
     3. Create a logOut mechanism
 
-    4. Implement a refresh Cookie rotation and invalidation (probably not both at same time)
 */
